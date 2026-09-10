@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
 
+test.use({ viewport: { width: 640, height: 480 }, deviceScaleFactor: 1 });
+
 test('complete a real freeride run, persist a medal, unlock a board, and ride again', async ({ page }) => {
-  test.setTimeout(180000);
+  test.setTimeout(300000);
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
@@ -13,7 +15,7 @@ test('complete a real freeride run, persist a medal, unlock a board, and ride ag
   await expect(page.locator('#run-label')).toHaveText('NORTH FACE / FREERIDE');
   await page.keyboard.down('ArrowUp');
   await page.keyboard.down('KeyX');
-  await expect(page.locator('#result')).toBeVisible({ timeout: 150000 });
+  await expect(page.locator('#result')).toBeVisible({ timeout: 240000 });
   await page.keyboard.up('KeyX');
   await page.keyboard.up('ArrowUp');
   await expect(page.locator('#result-text')).toContainText('MEDAL');

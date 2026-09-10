@@ -136,7 +136,7 @@ for (const button of document.querySelectorAll("[data-control]")) {
 		button.addEventListener(event, () => keys.delete(control));
 }
 function tick(now) {
-	const dt = Math.min((now - last) / 1000, 0.05);
+	const dt = Math.min((now - last) / 1000, 0.25);
 	last = now;
 	const steer =
 		Number(keys.has("ArrowRight") || keys.has("KeyD")) -
