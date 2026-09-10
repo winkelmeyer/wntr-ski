@@ -53,3 +53,7 @@ Vanilla JavaScript, Vite, Three.js, Web Audio. No backend, accounts, keys, or pa
 Deploy with Vercel using the Vite preset, `npm run build`, and output directory `dist`. The site is static and needs no environment variables. Add `wntr.ski` in the project's domain settings and use the DNS record Vercel requests at the domain registrar.
 
 Fonts are served by Google Fonts with local fallbacks. WebGL and hardware acceleration are required. Progress belongs to this browser and can be cleared with browser storage; there is no global leaderboard or multiplayer.
+
+## License
+
+MIT — see [LICENSE](LICENSE). Contributions are welcome through issues and pull requests.
