@@ -21,6 +21,25 @@ test("distance is consistent at 30, 60, and 144 frames per second", () => {
 	assert.ok(Math.max(...distances) - Math.min(...distances) < 0.02);
 });
 
+test("4 Hz frames preserve movement and the race clock against 60 Hz", () => {
+	const duration = 20;
+	const states = [4, 60].map((fps) => {
+		const state = createState();
+		for (let frame = 0; frame < fps * duration; frame += 1) {
+			step(state, { tuck: true, steer: 0.02, jump: false }, 1 / fps);
+		}
+		assert.ok(Math.abs(state.elapsed - duration) < 1e-8);
+		assert.ok(state.distance > 500);
+		return state;
+	});
+	for (const field of ["distance", "x", "z", "speed", "elapsed"]) {
+		assert.ok(
+			Math.abs(states[0][field] - states[1][field]) < 1e-8,
+			`${field} diverged between 4 Hz and 60 Hz`,
+		);
+	}
+});
+
 test("a jumping rider lands and earns a spin bonus", () => {
 	const state = createState();
 	step(state, { jump: true, trick: true }, 1 / 60);
