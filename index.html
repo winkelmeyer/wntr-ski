@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/><meta name="theme-color" content="#132c3b"/><meta name="description" content="Leave everything below. An atmospheric, playable 3D snowboarding escape. Drop into fresh powder at wntr.ski."/><title>WNTR — Leave everything below.</title><link rel="icon" type="image/svg+xml" href="/icon.svg"/></head>
+<body>
+<canvas id="mountain" aria-label="3D snowboarding mountain"></canvas>
+<div class="vignette"></div>
+<header><a class="wordmark" href="/" aria-label="WNTR home">wntr<span>↗</span></a><div class="edition">INDEPENDENT MOUNTAIN CLUB <span>EST. 2026</span></div><button id="sound" class="icon-button" aria-label="Enable mountain audio">SOUND OFF <span>◌</span></button></header>
+<main id="intro">
+<div class="eyebrow"><span class="live-dot"></span> THE MOUNTAIN IS YOURS</div>
+<h1>Leave<br/>everything<br/><em>below.</em></h1>
+<p>No lift lines. No last chair.<br/>Just you, your board, and a long way down.</p>
+<button id="start" class="primary">DROP IN <span>↗</span></button>
+<div class="intro-controls"><span>← → CARVE</span><span>SPACE JUMP</span><span>X SPIN</span></div>
+</main>
+<aside id="mountain-card"><div class="card-top"><span>01 / THE BACKCOUNTRY</span><span>↗</span></div><h2>North face.</h2><div class="mountain-stats"><div>3,842<span>SUMMIT / M</span></div><div>−12°<span>PERFECTLY COLD</span></div><div>∞<span>GOOD LINES</span></div></div><div class="card-bottom"><span class="live-dot"></span> FRESH POWDER. ZERO PLANS.</div></aside>
+<section id="lodge" class="overlay lodge" hidden><div class="lodge-heading"><div><div class="eyebrow">PICK YOUR NEXT STORY</div><h2>Find your line.</h2></div><button id="close-lodge" class="text-button">BACK ↗</button></div><div id="courses" class="course-grid"></div><div class="lodge-options"><div><span class="eyebrow">01 / YOUR SESSION</span><div class="mode-options"><button data-mode="freeride" class="selected">FREERIDE <small>Chase your best line</small></button><button data-mode="time">TIME ATTACK <small>Beat the mountain clock</small></button></div></div><div><span class="eyebrow">02 / YOUR BOARD</span><div id="boards" class="board-options"></div></div></div><div class="lodge-bottom"><p id="run-description"></p><button id="ride" class="primary">LET’S RIDE <span>↗</span></button></div></section><div id="hud" hidden><div class="hud-left"><span class="eyebrow"><span id="run-label">NORTH FACE / FREE RIDE</span></span><strong id="score">00000</strong><span>POINTS</span></div><div class="hud-right"><strong id="speed">0</strong><span>KM/H</span></div><div id="run-clock">00:00</div><div class="progress"><i id="progress"></i></div><div class="run-actions"><button id="pause">PAUSE II</button><button id="restart">RESTART ↺</button></div><div id="trick" role="status"></div><div class="ride-help">← → CARVE · ↑ TUCK · ↓ BRAKE · SPACE JUMP · X SPIN · ESC PAUSE</div></div>
+<section id="result" class="overlay" hidden><div class="eyebrow">ONE FOR THE MEMORY BANK</div><h2>What a<br/><em>line.</em></h2><p id="result-text"></p><button id="again" class="primary">ONE MORE RUN <span>↗</span></button><button id="home" class="text-button">CHOOSE ANOTHER RUN</button></section>
+<section id="paused" class="overlay" hidden><div class="eyebrow">TAKE IT IN</div><h2>Mountain<br/><em>time.</em></h2><button id="resume" class="primary">KEEP RIDING <span>↗</span></button></section>
+<div id="touch" hidden><button data-control="left" aria-label="Carve left">←</button><button data-control="right" aria-label="Carve right">→</button><button data-control="brake" aria-label="Brake">Ⅱ</button><button data-control="jump">JUMP</button><button data-control="trick">SPIN</button></div>
+<footer><span>A LITTLE LESS ONLINE. A LITTLE MORE ALPINE.</span><span class="coordinates">46°35′ N &nbsp; 7°57′ E <b>✳</b></span><span>SCROLL NOTHING. FEEL EVERYTHING.</span></footer>
+<div id="error" role="alert" hidden></div><script type="module" src="/src/main.js"></script>
+</body></html>
