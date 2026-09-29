@@ -1,67 +1,153 @@
 import { expect, test } from "@playwright/test";
 
-test.use({ viewport: { width: 640, height: 480 }, deviceScaleFactor: 1 });
+test.use({
+	viewport: { width: 960, height: 640 },
+	deviceScaleFactor: 1,
+	actionTimeout: 10000,
+	screenshot: "only-on-failure",
+});
 
-test("complete a real freeride run, persist a medal, unlock a board, and ride again", async ({
+async function followCompass(page, arrived, timeout = 60000) {
+	await page.evaluate(() => {
+		const held = new Set();
+		let frame;
+		const dispatch = (type, key) =>
+			window.dispatchEvent(
+				new KeyboardEvent(type, {
+					key: key === "ShiftLeft" ? "Shift" : key.slice(-1).toLowerCase(),
+					code: key,
+					bubbles: true,
+				}),
+			);
+		const navigate = () => {
+			const arrow = document.getElementById("waypoint-arrow");
+			const angle = Number(
+				arrow.style.transform.match(/rotate\(([-\d.e+]+)rad\)/)?.[1] ?? 0,
+			);
+			const turn = Math.atan2(Math.sin(angle), Math.cos(angle));
+			const description = document.getElementById("waypoint-text").textContent;
+			const distance = Number(description.match(/(\d+) M$/)?.[1] ?? 0);
+			const speed = Number(document.getElementById("speed").textContent);
+			const slowing =
+				distance < 28 && speed > (description.startsWith("GATE") ? 45 : 25);
+			const desired = new Set();
+			if (Math.abs(turn) > 0.18) desired.add(turn > 0 ? "KeyD" : "KeyA");
+			if (Math.abs(turn) < 0.65 && !slowing) desired.add("KeyW");
+			else desired.add("KeyB");
+			if (Math.abs(turn) < 0.25 && distance > 45) desired.add("ShiftLeft");
+			for (const key of held) if (!desired.has(key)) dispatch("keyup", key);
+			for (const key of desired) if (!held.has(key)) dispatch("keydown", key);
+			held.clear();
+			for (const key of desired) held.add(key);
+			frame = requestAnimationFrame(navigate);
+		};
+		window.stopCompassNavigation = () => {
+			cancelAnimationFrame(frame);
+			for (const key of held) dispatch("keyup", key);
+			delete window.stopCompassNavigation;
+		};
+		frame = requestAnimationFrame(navigate);
+	});
+	const deadline = Date.now() + timeout;
+	try {
+		while (Date.now() < deadline && !(await arrived())) {
+			await page.waitForTimeout(100);
+		}
+	} finally {
+		await page.evaluate(() => window.stopCompassNavigation?.());
+	}
+	if (!(await arrived())) {
+		await page.screenshot({
+			path: test.info().outputPath("navigation-failed.png"),
+		});
+		throw new Error(
+			`Navigation stopped: ${await page.locator("#waypoint-text").textContent()} / speed ${await page.locator("#speed").textContent()} / ${await page.locator("#interaction-label").textContent()}`,
+		);
+	}
+}
+
+test("ride the chairlift, explore the summit, then complete an eight-gate circuit using controls", async ({
 	page,
 }) => {
-	test.setTimeout(300000);
+	test.setTimeout(240000);
 	const errors = [];
-	page.on("pageerror", (error) => errors.push(error.message));
+	page.on("pageerror", (error) => {
+		errors.push(error.message);
+	});
 	await page.goto("/");
 	await page.locator("#start").click();
-	await expect(page.locator('[data-board="ice"]')).toBeDisabled();
-	await page.locator('[data-course="north"]').click();
-	await page.locator('[data-mode="freeride"]').click();
-	await page.locator("#ride").click();
-	await expect(page.locator("#run-label")).toHaveText("NORTH FACE / FREERIDE");
-	await page.keyboard.down("ArrowUp");
-	await page.keyboard.down("KeyX");
-	await expect(page.locator("#result")).toBeVisible({ timeout: 240000 });
-	await page.keyboard.up("KeyX");
-	await page.keyboard.up("ArrowUp");
-	await expect(page.locator("#result-text")).toContainText("MEDAL");
-
-	const progress = await page.evaluate(() =>
-		JSON.parse(localStorage.getItem("wntr-ski:progress:v1")),
+	await page.keyboard.down("a");
+	await page.waitForTimeout(750);
+	await page.keyboard.up("a");
+	await page.keyboard.down("w");
+	await page.waitForTimeout(2400);
+	await page.keyboard.up("w");
+	await page.keyboard.down("b");
+	await page.waitForTimeout(1100);
+	await page.keyboard.up("b");
+	await page.locator("#map-toggle").click();
+	await page.locator('[data-destination="lift"]').click();
+	await followCompass(
+		page,
+		async () =>
+			(await page.locator("#interact").isVisible()) &&
+			(await page.locator("#interaction-label").textContent()).includes(
+				"RIDE TO",
+			),
 	);
-	const record = progress.records["north:freeride"];
-	expect(record.score).toBeGreaterThan(1000);
-	expect(record.time).toBeGreaterThan(60);
-	expect(record.time).toBeLessThan(150);
-	expect(["bronze", "silver", "gold"]).toContain(record.medal);
-	expect(progress.medals).toBe(1);
-	await expect(page.locator("#result-text")).toContainText(
-		record.score.toLocaleString(),
+	await page.keyboard.press("e");
+	await expect(page.locator("#interaction-label")).toHaveText(
+		"JUMP OFF THE LIFT",
 	);
-	await page.screenshot({ path: "test-results/full-run-result.png" });
-
-	await page.locator("#home").click();
-	await expect(page.locator("#lodge")).toBeVisible();
-	await expect(page.locator('[data-course="north"] .record')).toContainText(
-		`BEST ${record.score}`,
-	);
-	await expect(page.locator('[data-board="ice"]')).toBeEnabled();
-	await page.locator('[data-board="ice"]').click();
-	await expect(page.locator('[data-board="ice"]')).toHaveClass(/selected/);
-	await page.locator("#close-lodge").click();
-	await expect(page.locator("#intro")).toBeVisible();
-	await page.reload();
-	await page.locator("#start").click();
-	await expect(page.locator('[data-board="ice"]')).toHaveClass(/selected/);
-	await expect(page.locator('[data-course="north"] .record')).toContainText(
-		`BEST ${record.score}`,
-	);
-	await page.locator("#ride").click();
-	await expect(page.locator("#hud")).toBeVisible();
-	await expect(page.locator("#score")).toHaveText("00000");
-	await page.keyboard.down("KeyX");
-	await page.keyboard.press("Space");
-	await expect(page.locator("#score")).not.toHaveText("00000", {
-		timeout: 10000,
+	await expect(page.locator("#location-name")).toHaveText("AURORA OVERLOOK", {
+		timeout: 35000,
 	});
-	await page.keyboard.up("KeyX");
-	await page.locator("#restart").click();
-	await expect(page.locator("#score")).toHaveText("00000");
+	await expect
+		.poll(
+			() =>
+				page.evaluate(() =>
+					JSON.parse(
+						localStorage.getItem("wntr-ski:explore:v1"),
+					)?.visited.includes("summit"),
+				),
+			{ timeout: 12000 },
+		)
+		.toBe(true);
+	await expect(page.locator("#interaction-label")).not.toHaveText(
+		"JUMP OFF THE LIFT",
+		{ timeout: 12000 },
+	);
+	await page.screenshot({ path: test.info().outputPath("summit.png") });
+	await page.locator("#map-toggle").click();
+	await page.locator('[data-destination="park"]').click();
+	await followCompass(
+		page,
+		async () =>
+			(await page.locator("#interact").isVisible()) &&
+			(await page.locator("#interaction-label").textContent()).includes(
+				"START SNOWFLAKE",
+			),
+	);
+	await page.keyboard.press("e");
+	await expect(page.locator("#waypoint-text")).toContainText("GATE 1 / 8");
+	await followCompass(
+		page,
+		async () =>
+			Boolean(
+				await page.evaluate(
+					() =>
+						JSON.parse(localStorage.getItem("wntr-ski:explore:v1"))?.bestRace,
+				),
+			),
+		120000,
+	);
+	const bestRace = await page.evaluate(
+		() => JSON.parse(localStorage.getItem("wntr-ski:explore:v1")).bestRace,
+	);
+	expect(bestRace).toBeGreaterThan(20);
+	expect(bestRace).toBeLessThan(120);
+	await page.screenshot({
+		path: test.info().outputPath("circuit-complete.png"),
+	});
 	expect(errors).toEqual([]);
 });
