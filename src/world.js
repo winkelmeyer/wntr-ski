@@ -1,279 +1,182 @@
 import * as THREE from "three";
-import { terrainHeight } from "./physics.js";
+import { createDestructibles } from "./destructible-world.js";
+import { createRider } from "./rider.js";
+import { createScenery } from "./scenery.js";
+import { createSnowmobile } from "./snowmobile.js";
+import {
+	CHUNK_SIZE,
+	halfpipe,
+	ramps,
+	terrainHeight,
+	treesForChunk,
+} from "./terrain.js";
 
-const snow = new THREE.MeshStandardMaterial({
-	color: 0xe6eeed,
-	roughness: 0.92,
-	flatShading: true,
-});
-const bark = new THREE.MeshStandardMaterial({ color: 0x344b50, roughness: 1 });
-const pine = new THREE.MeshStandardMaterial({
-	color: 0x335b60,
-	roughness: 1,
-	flatShading: true,
-});
-const orange = new THREE.MeshStandardMaterial({
-	color: 0xfc6534,
-	roughness: 0.6,
-});
-const dark = new THREE.MeshStandardMaterial({
-	color: 0x142c3b,
-	roughness: 0.7,
-});
-
-function mesh(geometry, material, parent, x, y, z) {
-	const item = new THREE.Mesh(geometry, material);
-	item.position.set(x, y, z);
-	item.castShadow = true;
-	item.receiveShadow = true;
-	parent.add(item);
-	return item;
-}
-
-export function createWorld(canvas, courseId = "north", boardColor = 0xfc6534) {
+export function createWorld(canvas) {
 	const renderer = new THREE.WebGLRenderer({
 		canvas,
 		antialias: true,
 		powerPreference: "high-performance",
 	});
-	renderer.setPixelRatio(Math.min(devicePixelRatio, 1.8));
+	renderer.setPixelRatio(
+		Math.min(
+			devicePixelRatio,
+			matchMedia("(pointer: coarse)").matches ? 1.4 : 1.75,
+		),
+	);
 	renderer.setSize(innerWidth, innerHeight);
 	renderer.shadowMap.enabled = true;
 	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 	renderer.toneMapping = THREE.ACESFilmicToneMapping;
 	renderer.toneMappingExposure = 1.15;
 	const scene = new THREE.Scene();
-	scene.background = new THREE.Color(0xaecbd7);
-	scene.fog = new THREE.FogExp2(
-		0xb8d0db,
-		courseId === "ridge" ? 0.005 : 0.0038,
-	);
-	const camera = new THREE.PerspectiveCamera(
-		58,
-		innerWidth / innerHeight,
-		0.1,
-		1400,
-	);
-	scene.add(new THREE.HemisphereLight(0xd7edff, 0x627983, 2.8));
-	const sun = new THREE.DirectionalLight(0xffead0, 3.4);
-	sun.position.set(-90, 120, 30);
+	scene.background = new THREE.Color(0xe9dfd2);
+	scene.fog = new THREE.Fog(0xe9dfd2, 170, 290);
+	const camera = new THREE.OrthographicCamera(-40, 40, 25, -25, 0.1, 600);
+	scene.add(new THREE.HemisphereLight(0xe1f4f1, 0xb79b82, 2.4));
+	const sun = new THREE.DirectionalLight(0xffe7c8, 3.2);
 	sun.castShadow = true;
-	sun.shadow.mapSize.set(2048, 2048);
+	sun.shadow.mapSize.set(1024, 1024);
 	Object.assign(sun.shadow.camera, {
-		left: -55,
-		right: 55,
+		left: -65,
+		right: 65,
 		top: 65,
 		bottom: -65,
 		near: 1,
-		far: 350,
+		far: 240,
 	});
-	sun.shadow.bias = -0.001;
+	sun.shadow.normalBias = 0.05;
+	sun.shadow.bias = -0.0002;
 	scene.add(sun, sun.target);
-	const geometry = new THREE.PlaneGeometry(320, 4600, 80, 1000);
-	geometry.rotateX(-Math.PI / 2);
-	const positions = geometry.attributes.position;
-	const colors = [];
+	const snow = new THREE.MeshStandardMaterial({
+		vertexColors: true,
+		roughness: 1,
+		flatShading: false,
+	});
+	const pine = new THREE.MeshStandardMaterial({
+		color: 0x487c78,
+		roughness: 1,
+		flatShading: true,
+	});
+	const snowCap = new THREE.MeshStandardMaterial({
+		color: 0xf1f5ed,
+		roughness: 1,
+		flatShading: true,
+	});
+	const bark = new THREE.MeshStandardMaterial({
+		color: 0x956f59,
+		roughness: 1,
+	});
+	const foliageGeometry = new THREE.ConeGeometry(1, 1, 7);
+	const trunkGeometry = new THREE.CylinderGeometry(0.12, 0.19, 1, 6);
+	const chunks = new Map();
+	const transform = new THREE.Object3D();
 	const color = new THREE.Color();
-	for (let i = 0; i < positions.count; i++) {
-		const x = positions.getX(i);
-		const z = positions.getZ(i) - 2150;
-		const bank = Math.max(0, Math.abs(x) - 25);
-		positions.setXYZ(
-			i,
-			x,
-			terrainHeight(x, z, courseId) + bank * bank * 0.006,
-			z,
+	function createChunk(cx, cz) {
+		const root = new THREE.Group();
+		const detailed = [...ramps, halfpipe].some(
+			(feature) =>
+				Math.abs(feature.x - (cx + 0.5) * CHUNK_SIZE) < CHUNK_SIZE / 2 + 25 &&
+				Math.abs(feature.z - (cz + 0.5) * CHUNK_SIZE) < CHUNK_SIZE / 2 + 25,
 		);
-		color.setHex(i % 7 === 0 ? 0xd4e4e8 : 0xe9f1ef);
-		colors.push(color.r, color.g, color.b);
-	}
-	geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
-	geometry.computeVertexNormals();
-	const ground = new THREE.Mesh(
-		geometry,
-		new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }),
-	);
-	ground.receiveShadow = true;
-	scene.add(ground);
-	const mountains = new THREE.Group();
-	for (let i = 0; i < 25; i++) {
-		const radius = 55 + random(i + 83) * 90;
-		const height = 100 + random(i + 15) * 220;
-		const peak = mesh(
-			new THREE.ConeGeometry(radius, height, 5, 3),
-			snow,
-			mountains,
-			Math.cos(i * 2.4) * (270 + random(i) * 180),
-			height * 0.28 - 55,
-			-270 - random(i + 6) * 500,
+		const segments = detailed ? 64 : 32;
+		const geometry = new THREE.PlaneGeometry(
+			CHUNK_SIZE,
+			CHUNK_SIZE,
+			segments,
+			segments,
 		);
-		peak.rotation.y = i * 0.7;
-	}
-	scene.add(mountains);
-	const obstacles = [];
-	const trunkGeometry = new THREE.CylinderGeometry(0.17, 0.28, 2, 5);
-	const pineGeometry = new THREE.ConeGeometry(1.5, 4, 6);
-	const snowGeometry = new THREE.ConeGeometry(1.28, 3.4, 6);
-	const treeParts = new Map();
-	for (let i = 0; i < 1050; i++) {
-		const z = 50 - random(i + 202) * 4400;
-		const side = i % 2 ? -1 : 1;
-		const x = side * (13 + random(i + 44) * 94);
-		if (z > -70 && Math.abs(x) < 22) continue;
-		const bank = Math.max(0, Math.abs(x) - 25);
-		const y = terrainHeight(x, z, courseId) + bank * bank * 0.006;
-		const tree = new THREE.Group();
-		const scale = 0.8 + random(i + 99) * 1.9;
-		tree.position.set(x, y, z);
-		tree.scale.setScalar(scale);
-		mesh(trunkGeometry, bark, tree, 0, 0.9, 0);
-		for (let level = 0; level < 3; level++) {
-			const layer = mesh(pineGeometry, pine, tree, 0, 2.4 + level * 1.2, 0);
-			layer.scale.setScalar(1 - level * 0.22);
-			const cap = mesh(snowGeometry, snow, tree, 0, 2.85 + level * 1.2, 0);
-			cap.scale.setScalar(1 - level * 0.22);
+		geometry.rotateX(-Math.PI / 2);
+		const positions = geometry.attributes.position;
+		const colors = new Float32Array(positions.count * 3);
+		for (let i = 0; i < positions.count; i++) {
+			const x = positions.getX(i) + (cx + 0.5) * CHUNK_SIZE;
+			const z = positions.getZ(i) + (cz + 0.5) * CHUNK_SIZE;
+			const y = terrainHeight(x, z);
+			positions.setXYZ(i, x, y, z);
+			const tint = Math.sin(x * 0.06) * Math.cos(z * 0.04) * 0.025;
+			color.setRGB(0.81 + tint, 0.9 + tint, 0.86 + tint);
+			colors.set([color.r, color.g, color.b], i * 3);
 		}
-		tree.updateMatrixWorld(true);
-		tree.traverse((part) => {
-			if (!part.isMesh) return;
-			const key = `${part.geometry.uuid}:${part.material.uuid}`;
-			if (!treeParts.has(key))
-				treeParts.set(key, {
-					geometry: part.geometry,
-					material: part.material,
-					matrices: [],
+		geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+		geometry.computeVertexNormals();
+		const terrain = new THREE.Mesh(geometry, snow);
+		terrain.receiveShadow = true;
+		root.add(terrain);
+		const trees = treesForChunk(cx, cz);
+		const trunks = new THREE.InstancedMesh(trunkGeometry, bark, trees.length);
+		const needles = new THREE.InstancedMesh(
+			foliageGeometry,
+			pine,
+			trees.length * 2,
+		);
+		const caps = new THREE.InstancedMesh(
+			foliageGeometry,
+			snowCap,
+			trees.length * 2,
+		);
+		for (const [i, tree] of trees.entries()) {
+			const height = tree.height || 5;
+			const y = terrainHeight(tree.x, tree.z);
+			transform.position.set(tree.x, y + height * 0.21, tree.z);
+			transform.scale.set(height / 5, height * 0.42, height / 5);
+			transform.updateMatrix();
+			trunks.setMatrixAt(i, transform.matrix);
+			for (let layer = 0; layer < 2; layer++) {
+				const size = 1 - layer * 0.3;
+				transform.position.set(
+					tree.x,
+					y + height * (0.46 + layer * 0.27),
+					tree.z,
+				);
+				transform.scale.set(
+					height * 0.3 * size,
+					height * 0.68 * size,
+					height * 0.3 * size,
+				);
+				transform.updateMatrix();
+				needles.setMatrixAt(i * 2 + layer, transform.matrix);
+				transform.position.y += height * 0.12;
+				transform.scale.multiplyScalar(0.79);
+				transform.updateMatrix();
+				caps.setMatrixAt(i * 2 + layer, transform.matrix);
+			}
+		}
+		for (const instance of [trunks, needles, caps]) {
+			instance.castShadow = true;
+			instance.receiveShadow = true;
+			instance.computeBoundingSphere();
+			root.add(instance);
+		}
+		scene.add(root);
+		return { root, geometry };
+	}
+	function updateChunks(x, z) {
+		const cx = Math.floor(x / CHUNK_SIZE);
+		const cz = Math.floor(z / CHUNK_SIZE);
+		const needed = new Set();
+		for (let dx = -2; dx <= 2; dx++)
+			for (let dz = -2; dz <= 2; dz++) {
+				const key = `${cx + dx},${cz + dz}`;
+				needed.add(key);
+				if (!chunks.has(key)) chunks.set(key, createChunk(cx + dx, cz + dz));
+			}
+		for (const [key, chunk] of chunks)
+			if (!needed.has(key)) {
+				scene.remove(chunk.root);
+				chunk.geometry.dispose();
+				chunk.root.traverse((item) => {
+					if (item.isInstancedMesh) item.dispose();
 				});
-			treeParts.get(key).matrices.push(part.matrixWorld.clone());
-		});
-		if (Math.abs(x) < 27) obstacles.push({ x, z, radius: scale * 1.1 });
+				chunks.delete(key);
+			}
 	}
-	for (const {
-		geometry: partGeometry,
-		material,
-		matrices,
-	} of treeParts.values()) {
-		const instance = new THREE.InstancedMesh(
-			partGeometry,
-			material,
-			matrices.length,
-		);
-		matrices.forEach((matrix, index) => {
-			instance.setMatrixAt(index, matrix);
-		});
-		instance.castShadow = true;
-		instance.receiveShadow = true;
-		scene.add(instance);
-	}
-	for (let i = 0; i < 44; i++) {
-		const z = -i * 100 - 30;
-		for (const x of [-24, 24]) {
-			const y = terrainHeight(x, z, courseId);
-			mesh(
-				new THREE.CylinderGeometry(0.07, 0.07, 2.6, 5),
-				dark,
-				scene,
-				x,
-				y + 1.3,
-				z,
-			);
-			mesh(
-				new THREE.BoxGeometry(0.7, 0.45, 0.06),
-				orange,
-				scene,
-				x,
-				y + 2.25,
-				z,
-			);
-		}
-	}
-	const rider = new THREE.Group();
-	const boardMaterial = orange.clone();
-	boardMaterial.color.set(boardColor);
-	const board = mesh(
-		new THREE.CapsuleGeometry(0.2, 1.9, 4, 10),
-		boardMaterial,
-		rider,
-		0,
-		0.16,
-		0,
-	);
-	board.rotation.z = Math.PI / 2;
-	board.scale.z = 0.2;
-	const body = new THREE.Group();
-	body.position.y = 0.25;
-	mesh(new THREE.BoxGeometry(0.62, 0.85, 0.42), orange, body, 0, 1.16, 0);
-	const head = mesh(
-		new THREE.SphereGeometry(0.27, 16, 12),
-		dark,
-		body,
-		0,
-		1.87,
-		0,
-	);
-	head.scale.y = 1.05;
-	const goggles = mesh(
-		new THREE.BoxGeometry(0.41, 0.12, 0.19),
-		new THREE.MeshStandardMaterial({
-			color: 0xf6c974,
-			metalness: 0.7,
-			roughness: 0.2,
-		}),
-		body,
-		0,
-		1.9,
-		-0.22,
-	);
-	goggles.rotation.y = -0.15;
-	for (const side of [-1, 1]) {
-		const leg = mesh(
-			new THREE.CapsuleGeometry(0.13, 0.52, 3, 6),
-			dark,
-			body,
-			side * 0.25,
-			0.45,
-			0,
-		);
-		leg.rotation.z = side * -0.32;
-		const arm = mesh(
-			new THREE.CapsuleGeometry(0.12, 0.55, 3, 6),
-			orange,
-			body,
-			side * 0.52,
-			1.25,
-			0,
-		);
-		arm.rotation.z = side * 1.03;
-		mesh(
-			new THREE.SphereGeometry(0.14, 6, 6),
-			dark,
-			body,
-			side * 0.87,
-			1.06,
-			0,
-		);
-	}
-	mesh(new THREE.BoxGeometry(0.42, 0.55, 0.23), dark, body, 0, 1.2, 0.29);
-	rider.add(body);
+	const scenery = createScenery(scene);
+	const destructibles = createDestructibles(scene);
+	const snowmobile = createSnowmobile(scene);
+	const { rider, update: updateRider } = createRider();
 	scene.add(rider);
-	const particlePositions = new Float32Array(450 * 3);
-	const particles = new THREE.BufferGeometry();
-	particles.setAttribute(
-		"position",
-		new THREE.BufferAttribute(particlePositions, 3),
-	);
-	const powder = new THREE.Points(
-		particles,
-		new THREE.PointsMaterial({
-			color: 0xffffff,
-			size: 0.13,
-			transparent: true,
-			opacity: 0.65,
-			depthWrite: false,
-		}),
-	);
-	scene.add(powder);
+	const trailPositions = new Float32Array(3600 * 3);
 	const trailGeometry = new THREE.BufferGeometry();
-	const trailPositions = new Float32Array(1800 * 3);
 	trailGeometry.setAttribute(
 		"position",
 		new THREE.BufferAttribute(trailPositions, 3),
@@ -282,99 +185,115 @@ export function createWorld(canvas, courseId = "north", boardColor = 0xfc6534) {
 	const trail = new THREE.Points(
 		trailGeometry,
 		new THREE.PointsMaterial({
-			color: 0x9dbbc9,
-			size: 0.26,
+			color: 0x8eaaa8,
+			size: 0.17,
 			transparent: true,
-			opacity: 0.45,
+			opacity: 0.35,
+			depthWrite: false,
 		}),
 	);
+	trail.frustumCulled = false;
 	scene.add(trail);
 	let trailIndex = 0;
 	let trailCount = 0;
-	const desired = new THREE.Vector3();
-	const look = new THREE.Vector3();
+	let lastTrailX = Infinity;
+	let lastTrailZ = Infinity;
+	const target = new THREE.Vector3();
+	const desiredTarget = new THREE.Vector3();
+	const offset = new THREE.Vector3();
 	let initialized = false;
-	function render(state, steer, time, mode) {
-		rider.position.set(state.x, state.y, state.z);
-		rider.rotation.set(
-			0,
-			(state.trickRotation || 0) + steer * -0.4,
-			steer * -0.18,
-		);
-		body.rotation.z = steer * -0.2;
-		body.position.y = state.airborne ? 0.02 : 0.25;
-		if (mode === "intro") {
-			desired.set(-18 + Math.sin(time * 0.08) * 2, 10, 24);
-			look.set(-8, 2, -40);
-		} else {
-			desired.set(state.x * 0.75 + steer * 1.3, state.y + 5.2, state.z + 10.5);
-			look.set(state.x + steer * 2, state.y + 0.5, state.z - 12);
-		}
-		camera.position.lerp(desired, initialized ? 0.08 : 1);
-		initialized = true;
-		camera.lookAt(look);
-		const targetFov = mode === "intro" ? 58 : 60 + state.speed * 0.48;
-		camera.fov = THREE.MathUtils.lerp(camera.fov, targetFov, 0.035);
+	let angle = 0.65;
+	let viewSize = 27;
+	let previousMode;
+	function resize() {
+		const aspect = innerWidth / innerHeight;
+		const halfHeight = aspect < 1 ? viewSize * 1.3 : viewSize;
+		camera.left = -halfHeight * aspect;
+		camera.right = halfHeight * aspect;
+		camera.top = halfHeight;
+		camera.bottom = -halfHeight;
 		camera.updateProjectionMatrix();
-		sun.position.set(state.x - 70, state.y + 110, state.z + 35);
-		sun.target.position.copy(rider.position);
-		mountains.position.z = state.z * 0.9;
-		mountains.position.y = state.y;
-		for (let i = 0; i < 450; i++) {
-			const age = (time * (state.speed > 1 ? 0.9 : 0.13) + random(i) * 3) % 1;
-			particlePositions[i * 3] =
-				state.x + (random(i + 42) - 0.5) * (i < 180 ? 2.8 : 55);
-			particlePositions[i * 3 + 1] =
-				state.y + (i < 180 ? age * 1.2 : random(i + 98) * 18);
-			particlePositions[i * 3 + 2] =
-				state.z + (i < 180 ? age * 8 : (random(i + 21) - 0.5) * 60);
+		renderer.setSize(innerWidth, innerHeight);
+	}
+	resize();
+	addEventListener("resize", resize);
+	function render(state, steer, time, mode, dt = 1 / 60) {
+		if (mode !== previousMode) {
+			viewSize = mode === "intro" ? 27 : 23;
+			previousMode = mode;
+			resize();
 		}
-		particles.attributes.position.needsUpdate = true;
-		if (mode === "ride" && !state.airborne) {
+		updateChunks(state.x, state.z);
+		updateRider(state, steer, time);
+		rider.visible = state.vehicle !== "snowmobile";
+		snowmobile.update(state, time);
+		scenery.update(state, time, dt);
+		destructibles.update(state, mode === "ride" ? dt : 0);
+		desiredTarget.set(state.x, terrainHeight(state.x, state.z) + 1, state.z);
+		if (mode === "intro") desiredTarget.add(new THREE.Vector3(-1, 0, -5));
+		target.lerp(desiredTarget, initialized ? 1 - Math.exp(-dt * 5) : 1);
+		initialized = true;
+		offset.set(Math.sin(angle) * 75, 64, Math.cos(angle) * 75);
+		camera.position.copy(target).add(offset);
+		camera.lookAt(target);
+		sun.position.set(state.x - 45, state.y + 85, state.z + 35);
+		sun.target.position.set(state.x, state.y, state.z);
+		if (
+			mode === "ride" &&
+			!state.airborne &&
+			!state.lift &&
+			!state.grind &&
+			Math.hypot(state.x - lastTrailX, state.z - lastTrailZ) > 0.2
+		) {
 			trailPositions.set(
-				[state.x, terrainHeight(state.x, state.z, courseId) + 0.045, state.z],
+				[state.x, terrainHeight(state.x, state.z) + 0.065, state.z],
 				trailIndex * 3,
 			);
-			trailIndex = (trailIndex + 1) % 1800;
-			trailCount = Math.min(1800, trailCount + 1);
+			trailIndex = (trailIndex + 1) % 3600;
+			trailCount = Math.min(3600, trailCount + 1);
 			trailGeometry.setDrawRange(0, trailCount);
 			trailGeometry.attributes.position.needsUpdate = true;
+			lastTrailX = state.x;
+			lastTrailZ = state.z;
 		}
 		renderer.render(scene, camera);
 	}
-	const resize = () => {
-		camera.aspect = innerWidth / innerHeight;
-		camera.updateProjectionMatrix();
-		renderer.setSize(innerWidth, innerHeight);
-	};
-	addEventListener("resize", resize);
 	return {
 		renderer,
 		render,
-		obstacles,
-		dispose: () => {
-			renderer.setAnimationLoop(null);
-			removeEventListener("resize", resize);
-			scene.traverse((item) => {
-				item.geometry?.dispose();
-				if (
-					item.material &&
-					![snow, bark, pine, orange, dark].includes(item.material)
-				)
-					item.material.dispose();
-			});
-			renderer.dispose();
+		orbit(delta) {
+			angle += delta;
 		},
-		reset: () => {
+		zoom(delta) {
+			viewSize = THREE.MathUtils.clamp(viewSize + delta, 16, 48);
+			resize();
+		},
+		reset() {
 			initialized = false;
 			trailCount = 0;
 			trailIndex = 0;
+			lastTrailX = Infinity;
+			lastTrailZ = Infinity;
 			trailGeometry.setDrawRange(0, 0);
 		},
+		dispose() {
+			removeEventListener("resize", resize);
+			const geometries = new Set();
+			const materials = new Set();
+			scene.traverse((item) => {
+				if (item.geometry) geometries.add(item.geometry);
+				for (const material of Array.isArray(item.material)
+					? item.material
+					: [item.material])
+					if (material) materials.add(material);
+				if (item.isInstancedMesh) item.dispose();
+			});
+			for (const geometry of geometries) geometry.dispose();
+			for (const material of materials) {
+				material.map?.dispose();
+				material.dispose();
+			}
+			renderer.dispose();
+		},
 	};
-}
-
-function random(seed) {
-	const value = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
-	return value - Math.floor(value);
 }
