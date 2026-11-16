@@ -727,3 +727,13 @@ footer .footer-links a:hover {
 .hero h1 .line:first-child {
 	color: var(--navy-ink);
 }
+
+.contact p {
+	margin: 0 0 24px;
+	color: var(--muted);
+}
+
+.contact p a {
+	color: var(--red);
+	font-weight: 700;
+}
