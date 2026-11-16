@@ -27,7 +27,7 @@ test("real Web Audio effects respond to jumps, landings, mute and pause", async 
 	});
 	const errors = [];
 	page.on("pageerror", (error) => errors.push(error.message));
-	await page.goto("/");
+	await page.goto("/game/");
 	await page.locator("#start").click();
 	await page.locator("#sound").click();
 	await expect(page.locator("#sound")).toHaveAttribute("aria-pressed", "true");
@@ -63,7 +63,7 @@ test("touch controls remain reachable in landscape", async ({ browser }) => {
 		hasTouch: true,
 	});
 	const page = await context.newPage();
-	await page.goto("/");
+	await page.goto("/game/");
 	await page.locator("#start").tap();
 	for (const selector of [
 		"#joystick",

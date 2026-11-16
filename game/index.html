@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f3ede1" />
+  <meta name="description" content="A little alpine world with a lot to discover. Snowboard anywhere, chase snowflakes, and take the scenic route. Free to explore at wntr.ski." />
+  <title>WNTR — Take the scenic route.</title>
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+  <meta name="robots" content="noindex, nofollow" />
+</head>
+<body>
+  <canvas tabindex="-1" id="mountain" aria-label="An explorable alpine snowboarding world"></canvas>
+  <div class="vignette"></div>
+  <header>
+    <a class="wordmark" href="/game/" aria-label="WNTR home">wntr<span>✳</span></a>
+    <div class="edition">A LITTLE ALPINE WORLD<span>NO FINISH LINE. NO WRONG TURNS.</span></div>
+    <nav aria-label="Game options">
+      <button id="sound" class="pill" aria-label="Enable mountain audio" aria-pressed="false">SOUND <span>OFF</span></button>
+      <button id="map-toggle" class="pill" aria-controls="map-panel" aria-expanded="false">MAP <kbd>M</kbd></button>
+      <button id="pause" class="pill" hidden aria-label="Pause game">Ⅱ</button>
+    </nav>
+  </header>
+  <div id="location" class="location"><span class="live-dot"></span><span id="location-name">BASE CAMP</span><span id="vehicle-label" class="location-weather">SNOWBOARD / FREE ROAM</span></div>
+  <main id="intro">
+    <div class="eyebrow">YOUR OUT-OF-OFFICE IS READY</div>
+    <h1>Take the<br /><em>scenic route.</em></h1>
+    <p>A board. A tiny alpine world. Absolutely nowhere<br class="desktop-break" /> you need to be. Pick a direction and get lost.</p>
+    <button id="start" class="primary">LET’S WANDER <span>↗</span></button>
+    <div class="intro-note"><span>✳</span> Press <kbd>W A S D</kbd> to start exploring.</div>
+  </main>
+  <aside id="postcard"><span class="eyebrow">FRESH AIR, ON THE HOUSE</span><strong>Less scrolling.<br />More snow.</strong><span class="postmark">WNTR<br />MOUNTAIN CLUB</span></aside>
+  <section id="hud" aria-label="Ride stats" hidden>
+    <div class="stats"><div><strong id="score">0</strong><span>GOOD TIMES</span></div><div><strong id="discoveries">0 / 4</strong><span>PLACES FOUND</span></div><div><strong id="collected">0 / 16</strong><span>SNOWFLAKES</span></div></div>
+    <div class="speedometer"><strong id="speed">0</strong><span>KM/H</span></div>
+    <div id="waypoint" hidden><span id="waypoint-arrow">↑</span><span id="waypoint-text"></span><button id="clear-waypoint" aria-label="Clear destination">×</button></div>
+    <button id="interact" hidden><kbd>E</kbd><span id="interaction-label"></span><span>↗</span></button>
+    <div id="trick" role="status" aria-live="polite"></div>
+    <div class="ride-help"><span><kbd>W A S D</kbd> MOVE</span><span><kbd>SHIFT</kbd> BOOST</span><span><kbd>SPACE</kbd> JUMP</span><span><kbd>X</kbd> SPIN</span><span>DRAG TO LOOK</span><button id="reset">↺ BACK TO CAMP <kbd>R</kbd></button></div>
+  </section>
+  <section id="map-panel" aria-label="Mountain map" hidden>
+    <div class="panel-heading"><div><span class="eyebrow">GO WHERE YOU FEEL</span><h2>Your neck<br />of the woods.</h2></div><button id="close-map" class="round" aria-label="Close map">×</button></div>
+    <canvas id="map" width="560" height="440" aria-label="Map with your position and mountain destinations"></canvas>
+    <div class="map-legend"><span><i></i> YOU ARE HERE</span><span>✳ SNOWFLAKES TO FIND</span></div>
+    <div id="destinations"></div>
+    <p class="map-note">Pick a place to set your compass.<br />The world keeps going beyond the map.</p>
+  </section>
+  <section id="paused" class="overlay" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden>
+    <span class="eyebrow">NOTHING IS IN A HURRY HERE</span><h2 id="pause-title">A little<br /><em>breather.</em></h2><p>Your tracks will be right here.</p>
+    <button id="resume" class="primary">KEEP WANDERING <span>↗</span></button>
+    <button id="pause-reset" class="text-button">TAKE ME BACK TO CAMP ↗</button>
+    <div class="pause-controls">WASD / arrows · move & reverse<br />Shift · boost &nbsp; B · brake &nbsp; Space · jump<br />X · spin &nbsp; M · map &nbsp; R · return to camp<br />Drag · orbit camera &nbsp; Scroll · zoom</div>
+  </section>
+  <div id="touch" hidden>
+    <div id="joystick" aria-label="Drag to steer and move" role="group"><span id="stick"></span><span class="stick-label">MOVE</span></div>
+    <div class="touch-actions"><button data-control="boost" aria-label="Hold to boost">↟<small>BOOST</small></button><button data-control="jump">↗<small>JUMP</small></button><button data-control="trick">⟳<small>SPIN</small></button><button data-control="brake">Ⅱ<small>BRAKE</small></button></div>
+  </div>
+  <footer><span>AN UNREASONABLY NICE DAY TO DO NOTHING.</span><span id="credit">almost oneshooted by astra</span></footer>
+  <div id="error" role="alert" hidden></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

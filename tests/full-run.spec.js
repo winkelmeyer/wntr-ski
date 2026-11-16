@@ -74,7 +74,7 @@ test("ride the chairlift, explore the summit, then complete an eight-gate circui
 	page.on("pageerror", (error) => {
 		errors.push(error.message);
 	});
-	await page.goto("/");
+	await page.goto("/game/");
 	await page.locator("#start").click();
 	await page.keyboard.down("a");
 	await page.waitForTimeout(750);

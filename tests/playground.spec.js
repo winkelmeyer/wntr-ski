@@ -6,7 +6,7 @@ test("each WASD key starts the game and does not resume a paused game", async ({
 	page,
 }) => {
 	for (const key of ["w", "a", "s", "d"]) {
-		await page.goto("/");
+		await page.goto("/game/");
 		await expect(page.locator(".intro-note")).toContainText(
 			"to start exploring",
 		);
@@ -24,7 +24,7 @@ test("hop on the snowmobile, smash a snowman, park and return to the board", asy
 }) => {
 	const errors = [];
 	page.on("pageerror", (error) => errors.push(error.message));
-	await page.goto("/");
+	await page.goto("/game/");
 	await page.keyboard.down("d");
 	await page.waitForTimeout(750);
 	await page.keyboard.up("d");

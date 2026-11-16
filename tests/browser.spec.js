@@ -5,7 +5,7 @@ test("keyboard entry, driving, collecting, pause, map, respawn, audio and saved 
 }) => {
 	const errors = [];
 	page.on("pageerror", (error) => errors.push(error.message));
-	await page.goto("/");
+	await page.goto("/game/");
 	await expect(page.locator("#start")).toBeVisible();
 	await expect(page.locator("#credit")).toHaveText(
 		"almost oneshooted by astra",
@@ -61,7 +61,7 @@ test("mobile joystick, simultaneous boost, jump, cancellation, and compact map",
 	const page = await context.newPage();
 	const errors = [];
 	page.on("pageerror", (error) => errors.push(error.message));
-	await page.goto("/");
+	await page.goto("/game/");
 	await page.screenshot({ path: "test-results/mobile-intro.png" });
 	await page.locator("#start").tap();
 	await expect(page.locator("#touch")).toBeVisible();
