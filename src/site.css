@@ -733,7 +733,7 @@ footer .footer-links a:hover {
 	color: var(--muted);
 }
 
-.contact p a {
+.contact .contact-email {
 	color: var(--red);
 	font-weight: 700;
 }
