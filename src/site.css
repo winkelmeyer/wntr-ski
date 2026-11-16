@@ -728,7 +728,7 @@ footer .footer-links a:hover {
 	color: var(--navy-ink);
 }
 
-.contact p {
+.contact-note {
 	margin: 0 0 24px;
 	color: var(--muted);
 }
